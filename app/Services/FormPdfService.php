@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\FormSubmission;
-use Spatie\LaravelPdf\Facades\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf as Dompdf;
 use Illuminate\Support\Facades\Log;
 
 class FormPdfService
@@ -38,12 +38,20 @@ class FormPdfService
         $relative = "forms/{$fileName}";
         $fullPath = public_path($relative);
 
-        // ------------ Generate & Save PDF ------------
+        // ------------ Generate & Save PDF (DOMPDF) ------------
         try {
-            Pdf::view('pdf.intake', $data)
-                ->format('letter')
-                ->margins(12, 12, 14, 12)   // top, right, bottom, left (mm)
-                ->save($fullPath);
+            // If your view uses remote images/CSS, enable remote assets below
+            $pdf = Dompdf::loadView('pdf.intake', $data)
+                ->setPaper('letter'); // paper size
+
+            // Optional: enable remote assets (images, external CSS). Use only if needed.
+            $pdf->setOptions([
+                'isRemoteEnabled' => true,
+                // 'isHtml5ParserEnabled' => true, // optional if you need better HTML5 parsing
+            ]);
+
+            // Save to disk
+            $pdf->save($fullPath);
         } catch (\Throwable $e) {
             Log::error("PDF save error for submission {$submission->id}: " . $e->getMessage());
             throw $e;
